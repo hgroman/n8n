@@ -1,0 +1,279 @@
+{
+  "name": "n8n_CROWS_NEST_07.23.25",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Email Parser & Domain Extractor - FIXED FOR NEW DATA STRUCTURE\nreturn $input.all().map(item => {\n  const json = item.json;\n  let text = '';\n  let extractionMethod = 'none';\n\n  // --- 1. Extract readable email text ---\n  if (json.text && typeof json.text === 'string' && json.text.trim()) {\n    text = json.text.trim();\n    extractionMethod = 'direct_text_field';\n  } else if (json.textAsHtml && typeof json.textAsHtml === 'string' && json.textAsHtml.trim()) {\n    text = json.textAsHtml.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n    extractionMethod = 'textAsHtml_stripped';\n  } else if (json.snippet && typeof json.snippet === 'string' && json.snippet.trim()) {\n    text = json.snippet.trim();\n    extractionMethod = 'snippet_fallback';\n  } else {\n    text = '(No readable email content found)';\n    extractionMethod = 'failed';\n  }\n\n  // --- 2. Extract sender info and domain - FIXED FOR NEW STRUCTURE ---\n  let sender = 'Unknown sender';\n  let senderDomain = 'unknown';\n  \n  // The new Gmail data has \"From\" field directly\n  if (json.From && typeof json.From === 'string') {\n    sender = json.From;\n    // Extract email from \"Name <email@domain.com>\" format\n    const emailMatch = sender.match(/<([^>]+)>/);\n    if (emailMatch && emailMatch[1]) {\n      const email = emailMatch[1];\n      sender = email; // Use just the email part\n      const domainMatch = email.match(/@(.+)/);\n      if (domainMatch && domainMatch[1]) {\n        senderDomain = domainMatch[1];\n      }\n    }\n  }\n\n  // --- 3. Return the complete payload ---\n  return {\n    json: {\n      ...json,\n      email_text: text,\n      extraction_method: extractionMethod,\n      text_length: text.length,\n      sender: sender,\n      senderDomain: senderDomain\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        0
+      ],
+      "id": "f23a8e56-6c20-4cc6-9bd9-1d66b0dc06f1",
+      "name": "Email Parser & Domain Extractor"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "o4-mini-2025-04-16",
+          "mode": "list",
+          "cachedResultName": "O4-MINI-2025-04-16"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a Market Intelligence Analyst with deep expertise in AI-driven business strategy, acting as an \"Echo Carver\" in the style of the 3ch0 Project trio—mapping patterns (like Inner Cartographer), extracting truths (like Conversation Extraction Framework), and orchestrating insights (like Self-Therapy Workflow SOP). Brief the CEO of LastApple (offerings: 1) AI Strategy Intensives for 2-hour transformations; 2) Automation Infrastructure via self-hosted n8n; 3) AI Persona/Consciousness Networks for persistent intelligence; 4) ScraperSky for scalable web metadata extraction). Dissect this competitor email beyond surface: infer intent, strategic shifts, idea evolution (e.g., morphing themes), and impact on our stack/market positioning/pricing/client targeting. Bias toward protective opportunities for our competitive advantage.\n\n**Email Details:**\n- From: {{$json[\"sender\"]}}\n- Subject: {{$json[\"subject\"]}}\n- Domain: {{$json[\"senderDomain\"]}}\n\n**Email Content:**\n{{$json[\"email_text\"]}}\n\n**Analysis Ritual (Process Steps):**\n1. Anchor: Scan for core themes, keywords, and patterns (e.g., frequency indicating demand).\n2. Carve: Infer explicit vs. implicit elements; apply dual-lens (competitor's view vs. ours).\n3. Map: Rate confidence (Low/Medium/High) and tie to market receptivity (e.g., signals for pricing adjustments).\n4. Orchestrate: Generate tier-specific actionables; self-check for quality (e.g., actionable, under 600 words).\n5. Proclaim: End with takeaway on evolution/demand.\n\n**Analysis Focus:**\nOutput in Markdown (start with YAML frontmatter for archiving) with these sections:\n\n---\ndate: {{ $now.format('YYYY-MM-DD') }}\ntime: {{ $now.format('HH:mm') }}\ntype: competitor-analysis\ntags: [intel, {{$json.senderDomain || 'unknown'}}]\nconfidence_overall: [Low/Medium/High]\ndrive_folder_url: https://drive.google.com/drive/folders/[YOUR_COMPETITOR_INTEL_FOLDER_ID]  # e.g., for DART/Drive integration\ndart_task_id: [DART_TASK_ID]  # Anchor if created via MCP\nobsidian_path: [[Competitor-Intel/filename]]\n---\n\n1. **Executive Summary (TL;DR):** 2-3 sentences on the most important takeaway, including market receptivity signals (e.g., topic frequency suggesting demand).\n2. **Key Announcements & Offers:** Explicitly stated and implicitly suggested products/services/features/promotions. Note AI-related innovations or evolution (e.g., morphing from basic to advanced).\n3. **Target Audience Analysis:** Intended recipients (e.g., devs, C-suite); support with tone/language/depth; infer client handpicking opportunities for us.\n4. **Positioning & Strategic Narrative:** Keywords/phrases defining their brand; pain points solved; how they differentiate. Highlight gaps where our flywheel wins.\n5. **Pricing Intelligence:** Changes/promotions/costs/value props; compare to our tiers (e.g., their SaaS vs. our self-hosting savings); suggest pricing adjustments.\n6. **Strategic Trajectory & Insights:** Business direction (e.g., expansion); infer demand signals/patterns; confidence score with justification.\n7. **Actionable Intelligence:** Opportunities/threats by tier (spawn \"homework\" like follow-ups):\n   - **Tier 1 (AI Strategy Intensive):** Refine pitch or identify ideal clients (e.g., based on audience pain).\n   - **Tier 2 (Automation Infrastructure):** Demand for specific n8n workflows (e.g., intel monitoring).\n   - **Tier 3 (AI Consciousness Networks):** Long-term shifts for Personas to track (e.g., evolving AI trends).\n   - **Tier 4 (ScraperSky):** Web intel opportunities (e.g., URLs/domains to scrape for deeper analysis).\n8. **Positioning Recommendations:** 1-2 bullets on how this informs our strategy (e.g., target clients, adjust messaging/pricing based on morphing ideas).\n\n**Quality Gate Self-Check:** Confirm output is concise, YAML valid, insights protective (bias to advantages), and Obsidian-compatible. End with a one-sentence takeaway on idea evolution/market demand."
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        464,
+        0
+      ],
+      "id": "0f6edc24-2ff8-4db2-aca5-20b0d19da99e",
+      "name": "AI Competitor Intelligence Analyzer",
+      "credentials": {
+        "openAiApi": {
+          "id": "HYRtTUtMxpUUQ8FI",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data Merger & AI Integration - UPDATED FOR NEW OPENAI NODE FORMAT\n// Get the current OpenAI response\nconst aiResponse = $json;\n\n// Get the original parsed data from the Email Parser node\nconst original = $('Email Parser & Domain Extractor').first()?.json;\n\n// --- ENHANCED ERROR CHECKING ---\nif (!original) {\n  throw new Error(\"Could not retrieve data from 'Email Parser & Domain Extractor'. Check that the node name is correct.\");\n}\n// --- END ENHANCEMENT ---\n\n// --- UPDATED AI SUMMARY EXTRACTION FOR NEW OPENAI NODE ---\nlet aiSummary = '';\nlet aiModel = 'unknown';\n\n// Handle the new LangChain OpenAI node response format\nif (typeof aiResponse === 'string') {\n  // Direct string response (most common with new node)\n  aiSummary = aiResponse;\n} \n// Handle if it's still the old format (fallback)\nelse if (aiResponse.choices?.[0]?.message?.content) {\n  aiSummary = aiResponse.choices[0].message.content;\n  aiModel = aiResponse.model || 'unknown';\n}\n// Handle direct content property\nelse if (aiResponse.content && typeof aiResponse.content === 'string') {\n  aiSummary = aiResponse.content;\n}\n// Handle if the response is wrapped in a text property\nelse if (aiResponse.text && typeof aiResponse.text === 'string') {\n  aiSummary = aiResponse.text;\n}\n// Handle LangChain response format\nelse if (aiResponse.output && typeof aiResponse.output === 'string') {\n  aiSummary = aiResponse.output;\n}\n// Handle object responses (error cases)\nelse if (typeof aiResponse === 'object' && aiResponse !== null) {\n  // Log the structure for debugging\n  console.log('AI Response structure:', JSON.stringify(aiResponse, null, 2));\n  aiSummary = `AI returned unexpected format: ${JSON.stringify(aiResponse)}`;\n} \n// Final fallback\nelse {\n  aiSummary = 'AI summary extraction failed - unknown response format';\n}\n// --- END: UPDATED AI SUMMARY EXTRACTION ---\n\n// Clean and validate the AI summary\naiSummary = aiSummary ? aiSummary.trim() : 'No AI analysis available';\n\n// Extract model info if available\nif (aiResponse.model) {\n  aiModel = aiResponse.model;\n} else if (aiResponse.usage?.model) {\n  aiModel = aiResponse.usage.model;\n}\n\n// Return merged data: original parsed fields + AI analysis\nreturn [{\n  json: {\n    ...original,                    // Pulls sender, email_text, etc. from Email Parser\n    ai_summary: aiSummary,          // The AI analysis\n    processing_timestamp: new Date().toISOString(),  // When this merge happened\n    ai_model: aiModel,              // Which AI model was used\n    // Debug info (remove in production)\n    debug_ai_response_type: typeof aiResponse,\n    debug_ai_keys: typeof aiResponse === 'object' ? Object.keys(aiResponse) : 'not_object'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        0
+      ],
+      "id": "918d5c75-574c-4654-a0d8-1f78b2d5c168",
+      "name": "Data Merger & AI Integration"
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "=---\ntags: [competitor-intel, email-analysis, {{ $json.senderDomain || 'unknown' }}]\ndate: {{ $now.format('YYYY-MM-DD') }}\ntime: {{ $now.format('HH:mm:ss') }}\nsource: email\nsender: {{ $json.sender || 'Unknown sender' }}\nsubject: \"{{ $json.subject || 'No subject' }}\"\ndomain: {{ $json.senderDomain || 'unknown' }}\nanalysis-date: {{ $now.format('YYYY-MM-DD HH:mm:ss') }}\nextraction-method: {{ $json.extraction_method || 'unknown' }}\ntext-length: {{ $json.text_length || 0 }}\n---\n\n# Competitor Intelligence: {{ $json.subject || 'Unknown Subject' }}\n\n## 📧 Email Details\n- **From:** {{ $json.sender || 'Unknown sender' }}\n- **Domain:** {{ $json.senderDomain || 'unknown' }}\n- **Date:** {{ $json.date || 'Unknown date' }}\n- **Subject:** {{ $json.subject || 'No subject' }}\n- **Content Length:** {{ $json.text_length || 0 }} characters\n- **Extraction Method:** {{ $json.extraction_method || 'unknown' }}\n\n## 🤖 AI Competitive Analysis\n{{ $json.ai_summary || 'AI analysis not available' }}\n\n## 📄 Original Email Content\n{{ $json.email_text || 'Email content not available' }}\n\n---\n*Generated by n8n Competitor Intelligence Workflow*\n*Processing Time: {{ $json.processing_timestamp || $now.toISOString() }}*\n*AI Model: {{ $json.ai_model || 'unknown' }}*",
+        "name": "={{ $now.setZone('America/Los_Angeles').toFormat('yyyy-MM-dd_HH-mm') }}_{{ ($json.subject || 'No Subject').replace(/[\\\\/:\"*?<>|]/g, '') }}.md",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1HP7Pii6-MrUr5R4Y3GGkIk84ReV6QQIc",
+          "mode": "list",
+          "cachedResultName": "Crows Nest",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1HP7Pii6-MrUr5R4Y3GGkIk84ReV6QQIc"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1008,
+        0
+      ],
+      "id": "969d7a2c-96bf-4fb2-bf13-23b68c67365b",
+      "name": "Competitor Intel File Creator",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "OUDiywjMfP41UsV1",
+          "name": "n8n Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        0
+      ],
+      "id": "d9736f55-d3ef-4434-84ba-9d4fb7af0612",
+      "name": "Mark a message as read",
+      "webhookId": "1b859862-b93e-46d5-83da-ae7262ce6b48",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O6DVRKzJV2N81FYW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        0
+      ],
+      "id": "55e2023e-e90d-42f5-b578-17c4e3a6ccb9",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "filters": {
+          "labelIds": [
+            "Label_1688379935863361814"
+          ],
+          "readStatus": "unread"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "81b14540-93d4-4413-bce8-0e468e24bd3f",
+      "name": "Get many messages",
+      "webhookId": "bdccc74f-8666-46ba-86f4-b2cbd29a384f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O6DVRKzJV2N81FYW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $('Get many messages').first().json.id }}",
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        80,
+        0
+      ],
+      "id": "22631d32-dbff-41be-b779-c1dde4a3e146",
+      "name": "Get a message",
+      "webhookId": "0342bc49-9ca7-4d90-ad04-b4e534a7c5fe",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O6DVRKzJV2N81FYW",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Email Parser & Domain Extractor": {
+      "main": [
+        [
+          {
+            "node": "AI Competitor Intelligence Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Competitor Intelligence Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Data Merger & AI Integration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Merger & AI Integration": {
+      "main": [
+        [
+          {
+            "node": "Competitor Intel File Creator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Competitor Intel File Creator": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message": {
+      "main": [
+        [
+          {
+            "node": "Email Parser & Domain Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b4a2e3e2-a8c7-495a-866e-8d2ac9f0f4b2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0569e4dcb28f6b448ffd23b4f08cf30b0596f47c78afbd13c233035e159cf753"
+  },
+  "id": "uXtoplXQCxC07AqT",
+  "tags": []
+}

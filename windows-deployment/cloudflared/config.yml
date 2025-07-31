@@ -1,0 +1,24 @@
+# Cloudflare Tunnel Configuration for Windows Server
+# Place this file in C:\n8n-production\cloudflared\config.yml
+
+tunnel: your-tunnel-id-here
+credentials-file: /etc/cloudflared/cert.pem
+
+ingress:
+  - hostname: n8n.improvemyrankings.com
+    service: http://n8n:5678
+  - service: http_status:404
+
+# Optional: Enable metrics
+metrics: 0.0.0.0:9090
+
+# Logging configuration
+loglevel: info
+
+# Connection settings
+protocol: auto
+retries: 5
+grace-period: 30s
+
+# Health check settings
+grace-period: 30s

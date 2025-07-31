@@ -1,0 +1,81 @@
+{
+  "name": "HubSpot - Strategic Outreach Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "eventsUi": {
+          "eventValues": [
+            {
+              "name": "contact.propertyChange",
+              "property": "email_is_bad"
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.hubspotTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "460fb5e7-dda1-440f-b23f-c5272503f5fb",
+      "name": "HubSpot Trigger",
+      "webhookId": "8e44f0c7-f287-476e-b8cb-5c3f00965095",
+      "credentials": {
+        "hubspotDeveloperApi": {
+          "id": "2kTjGvLBD89nmXvY",
+          "name": "HubSpot Developer account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hank@lastapple.com",
+        "subject": "Strategic Outreach Field Changed",
+        "message": "Strategic Outreach Field Changed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "0d8df346-c14e-458e-ab2d-d455f3f44fd1",
+      "name": "Send a message",
+      "webhookId": "1fca3f9e-709b-4281-bb81-25b91eb2d0df",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Fr7a5pC4Ht6CBiLO",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HubSpot Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e5ba8bb2-e86b-45c4-a28e-c4abe45e3107",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d76d08d7cf2eb3d50a2a4136242a700e1eb3c2c7f1784a314ede7bb9a83f1f10"
+  },
+  "id": "Ii0752ahzmNIoRL6",
+  "tags": []
+}

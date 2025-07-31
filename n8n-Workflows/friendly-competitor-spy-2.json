@@ -1,0 +1,193 @@
+{
+  "name": "friendly-competitor-spy",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "o4-mini-2025-04-16",
+          "mode": "list",
+          "cachedResultName": "O4-MINI-2025-04-16"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Summarize the following email: {{$json[\"email_text\"]}}\n\nSubject: {{$json[\"subject\"]}}\nFrom: {{$json[\"sender\"]}}\n\nEmail content:\n{{$json[\"email_text\"]}}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        160,
+        -32
+      ],
+      "id": "ab6c8bda-0c8f-4eaa-a28a-bc55da3a171d",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "YmBILydZ1nPmlYvr",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gmail text extraction + senderDomain passthrough\nreturn $input.all().map(item => {\n\n  /* ---------- 1. Pull usable email text ---------- */\n  let text = '';\n  let extractionMethod = 'none';\n\n  // A. plain‑text field\n  if (item.json.text && item.json.text.trim()) {\n    text = item.json.text.trim();\n    extractionMethod = 'direct_text_field';\n  }\n\n  // B. HTML field → strip tags\n  else if (item.json.textAsHtml && item.json.textAsHtml.trim()) {\n    text = item.json.textAsHtml\n      .replace(/<[^>]+>/g, ' ')\n      .replace(/&nbsp;/g, ' ')\n      .replace(/&amp;/g, '&')\n      .replace(/&lt;/g, '<')\n      .replace(/&gt;/g, '>')\n      .replace(/&quot;/g, '\"')\n      .replace(/\\s+/g, ' ')\n      .trim();\n    extractionMethod = 'textAsHtml_stripped';\n  }\n\n  // C. Fallback to Gmail snippet\n  else if (item.json.snippet && item.json.snippet.trim()) {\n    text = item.json.snippet.trim();\n    extractionMethod = 'snippet_fallback';\n  }\n\n  // D. Last‑ditch: subject only\n  else if (item.json.subject) {\n    text = `Subject: ${item.json.subject}`;\n    extractionMethod = 'subject_only';\n  }\n\n  if (!text) {\n    text = '(No readable email content found)';\n    extractionMethod = 'failed';\n  }\n\n  /* ---------- 2. Pull sender + domain ---------- */\n  const rawFrom = item.json.from?.[0]?.address || '';\n  const senderDomain = rawFrom.includes('@') ? rawFrom.split('@')[1] : 'unknown';\n\n  /* ---------- 3. Return enriched payload ---------- */\n  return {\n    json: {\n      ...item.json,           // keep every original field\n      email_text: text,\n      extraction_method: extractionMethod,\n      text_length: text.length,\n      sender: rawFrom || 'Unknown sender',\n      senderDomain              // domain field for Drive node\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -224
+      ],
+      "id": "0ca83dc1-e94b-4dfe-9b79-6c9c2860bde2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "=---\ntags: [competitor-intel, email-analysis, {{$json.senderDomain}}]\ndate: {{$now.format('YYYY-MM-DD')}}\ntime: {{$now.format('HH:mm:ss')}}\nsource: email\nsender: {{$json.sender}}\nsubject: \"{{$json.subject}}\"\nanalysis-date: {{$now.format('YYYY-MM-DD HH:mm:ss')}}\n---\n\n# Competitor Intelligence: {{$json.subject}}\n\n## 📧 Email Details\n- **From:** {{$json.sender}}\n- **Date:** {{$json.date}}\n- **Subject:** {{$json.subject}}\n\n## 🤖 AI Analysis\n{{$json.ai_summary}}\n\n## 📄 Original Email Content\n{{$json.email_text}}",
+        "name": "={{$now.format('YYYY-MM-DD_HH-mm')}}{{$json.senderDomain}}{{$json.subject.replace(/[^a-zA-Z0-9-_ ]+/g,'').substring(0,40)}}.md",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "15Ww6uBvidXWebqUNAsDji3PFqcTt0oJr",
+          "mode": "list",
+          "cachedResultName": "01_friendly competitors",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/15Ww6uBvidXWebqUNAsDji3PFqcTt0oJr"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        832,
+        -32
+      ],
+      "id": "e4769122-6661-4091-adb2-7c2ef374dd03",
+      "name": "Create file from text",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "H8Yrve6IfFDWiRvw",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_1688379935863361814"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        -32
+      ],
+      "id": "e0ad794c-e28b-4cf6-88aa-4dcd9ea25c44",
+      "name": "Get many messages",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mcOhyAgPtYo02OkR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge original fields with OpenAI summary\nconst original = $input.first().json;   // data from previous nodes\nconst ai      = $json.choices?.[0]?.message?.content || '';\n\nreturn [\n  {\n    json: {\n      ...original,               // keeps subject, sender, senderDomain, etc.\n      ai_summary: ai             // adds the OpenAI content\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        -224
+      ],
+      "id": "77adcdf7-94a3-4fab-90f2-c729f9465d4f",
+      "name": "Code1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create file from text": {
+      "main": [
+        []
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Create file from text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2f61677d-38b3-4d40-aadd-12dae2d5220e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cf869fca64012e6561c3a8aa4a77e587700789bed025ef5a7dec1df660fab605"
+  },
+  "id": "aJncDEr9j9muTjM2",
+  "tags": []
+}

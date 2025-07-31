@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+  n8n:
+    image: n8nio/n8n:1.104.1
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_PROTOCOL=https
+      - N8N_HOST=n8n
+      - N8N_PORT=5678
+      - N8N_EDITOR_BASE_URL=https://n8n.improvemyrankings.com
+      - WEBHOOK_URL=https://n8n.improvemyrankings.com
+      - N8N_WEBHOOK_TUNNEL_URL=https://n8n.improvemyrankings.com
+      - N8N_SECURE_COOKIE=false
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-changeme}
+      - N8N_DEFAULT_WEBHOOK_TIMEOUT=120000
+      - N8N_TIMEOUT_THRESHOLD=300
+      - DB_TYPE=sqlite
+      - N8N_RUNNERS_ENABLED=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # Windows path for workflows backup
+      - C:\n8n-production\n8n-workflows:/home/node/.n8n/workflows:ro
+    networks:
+      - n8n_network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    volumes:
+      # Windows path for cloudflared config
+      - C:\n8n-production\cloudflared:/etc/cloudflared:ro
+    depends_on:
+      - n8n
+    networks:
+      - n8n_network
+
+volumes:
+  n8n_data:
+    driver: local
+
+networks:
+  n8n_network:
+    driver: bridge

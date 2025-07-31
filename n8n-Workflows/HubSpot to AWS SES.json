@@ -1,0 +1,127 @@
+{
+  "name": "HubSpot to AWS SES",
+  "nodes": [
+    {
+      "parameters": {
+        "eventsUi": {
+          "eventValues": [
+            {
+              "name": "contact.propertyChange",
+              "property": "email_is_bad"
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.hubspotTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0cb80e4e-b9c6-46da-8c04-def1203d6dc2",
+      "name": "HubSpot Trigger",
+      "webhookId": "8e44f0c7-f287-476e-b8cb-5c3f00965095",
+      "credentials": {
+        "hubspotDeveloperApi": {
+          "id": "Zt569gFc067tE7it",
+          "name": "HubSpot Developer account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendTemplate",
+        "templateName": "New_email-1752544682",
+        "fromEmail": "hank@lastapple.com",
+        "toAddresses": [
+          "={{ $json.properties.email.value }}"
+        ],
+        "templateDataUi": {
+          "templateDataValues": [
+            {
+              "key": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsSes",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "c0b74d9f-d50e-4f2a-94e8-d1e5635a720a",
+      "name": "Send an email based on a template",
+      "credentials": {
+        "aws": {
+          "id": "CXkMtZy6ISoC3G01",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "operation": "get",
+        "contactId": {
+          "__rl": true,
+          "value": "={{ $('HubSpot Trigger').item.json.contactId }}",
+          "mode": "id"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0945890e-516e-4991-b1b7-4dcf032c07a3",
+      "name": "Get a contact",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "L6NpkmLbGOX58urG",
+          "name": "HubSpot Token 4 Last Apple Biz"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HubSpot Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a contact": {
+      "main": [
+        [
+          {
+            "node": "Send an email based on a template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3a1b76e8-8ae1-4e78-b5d1-1f84e2070715",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cf869fca64012e6561c3a8aa4a77e587700789bed025ef5a7dec1df660fab605"
+  },
+  "id": "OC5rDCSDsfPtZWFN",
+  "tags": []
+}

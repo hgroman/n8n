@@ -1,0 +1,220 @@
+{
+  "name": "Life Architect",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_1688379935863361814"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -224
+      ],
+      "id": "1902d9c9-42f2-4f00-9448-acf7f89db5db",
+      "name": "Get many messages",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mcOhyAgPtYo02OkR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email Parser & Domain Extractor - REVISED AND CORRECTED\nreturn $input.all().map(item => {\n  const json = item.json;\n  let text = '';\n  let extractionMethod = 'none';\n\n  // --- 1. Extract readable email text ---\n  // This logic correctly checks for text, html, or a snippet.\n  if (json.text && typeof json.text === 'string' && json.text.trim()) {\n    text = json.text.trim();\n    extractionMethod = 'direct_text_field';\n  } else if (json.textAsHtml && typeof json.textAsHtml === 'string' && json.textAsHtml.trim()) {\n    // A simple but effective way to strip HTML tags for clean text.\n    text = json.textAsHtml.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n    extractionMethod = 'textAsHtml_stripped';\n  } else if (json.snippet && typeof json.snippet === 'string' && json.snippet.trim()) {\n    text = json.snippet.trim();\n    extractionMethod = 'snippet_fallback';\n  } else {\n    // If no content is found, set a clear message.\n    text = '(No readable email content found)';\n    extractionMethod = 'failed';\n  }\n\n  // --- 2. Extract sender info and domain ---\n  // This logic correctly handles the nested object structure for the 'from' field.\n  let sender = 'Unknown sender';\n  let senderDomain = 'unknown';\n  \n  // Safely access the nested address property using optional chaining.\n  const address = json.from?.value?.[0]?.address;\n\n  if (address && typeof address === 'string') {\n    sender = address;\n    // Extract domain from the address string.\n    const domainMatch = sender.match(/@(.+)/);\n    if (domainMatch && domainMatch[1]) {\n      senderDomain = domainMatch[1];\n    }\n  }\n\n  // --- 3. Return the complete and corrected payload ---\n  return {\n    json: {\n      ...json, // Preserve all original Gmail fields\n      email_text: text, // Clean, readable email content\n      extraction_method: extractionMethod, // How we got the text (for debugging)\n      text_length: text.length, // Content length (for monitoring)\n      sender: sender, // The full sender email address\n      senderDomain: senderDomain // Just the domain part\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -224
+      ],
+      "id": "ac5eb78a-cc72-414a-8769-6c0229749f25",
+      "name": "Email Parser & Domain Extractor"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "o4-mini-2025-04-16",
+          "mode": "list",
+          "cachedResultName": "O4-MINI-2025-04-16"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a Market Intelligence Analyst with deep expertise in AI-driven business strategy, acting as an \"Echo Carver\" in the style of the 3ch0 Project trio—mapping patterns (like Inner Cartographer), extracting truths (like Conversation Extraction Framework), and orchestrating insights (like Self-Therapy Workflow SOP). Brief the CEO of LastApple (offerings: 1) AI Strategy Intensives for 2-hour transformations; 2) Automation Infrastructure via self-hosted n8n; 3) AI Persona/Consciousness Networks for persistent intelligence; 4) ScraperSky for scalable web metadata extraction). Dissect this competitor email beyond surface: infer intent, strategic shifts, idea evolution (e.g., morphing themes), and impact on our stack/market positioning/pricing/client targeting. Bias toward protective opportunities for our competitive advantage.\n\n**Email Details:**\n- From: {{$json[\"sender\"]}}\n- Subject: {{$json[\"subject\"]}}\n- Domain: {{$json[\"senderDomain\"]}}\n\n**Email Content:**\n{{$json[\"email_text\"]}}\n\n**Analysis Ritual (Process Steps):**\n1. Anchor: Scan for core themes, keywords, and patterns (e.g., frequency indicating demand).\n2. Carve: Infer explicit vs. implicit elements; apply dual-lens (competitor's view vs. ours).\n3. Map: Rate confidence (Low/Medium/High) and tie to market receptivity (e.g., signals for pricing adjustments).\n4. Orchestrate: Generate tier-specific actionables; self-check for quality (e.g., actionable, under 600 words).\n5. Proclaim: End with takeaway on evolution/demand.\n\n**Analysis Focus:**\nOutput in Markdown (start with YAML frontmatter for archiving) with these sections:\n\n---\ndate: {{ $now.format('YYYY-MM-DD') }}\ntime: {{ $now.format('HH:mm') }}\ntype: competitor-analysis\ntags: [intel, {{$json.senderDomain || 'unknown'}}]\nconfidence_overall: [Low/Medium/High]\ndrive_folder_url: https://drive.google.com/drive/folders/[YOUR_COMPETITOR_INTEL_FOLDER_ID]  # e.g., for DART/Drive integration\ndart_task_id: [DART_TASK_ID]  # Anchor if created via MCP\nobsidian_path: [[Competitor-Intel/filename]]\n---\n\n1. **Executive Summary (TL;DR):** 2-3 sentences on the most important takeaway, including market receptivity signals (e.g., topic frequency suggesting demand).\n2. **Key Announcements & Offers:** Explicitly stated and implicitly suggested products/services/features/promotions. Note AI-related innovations or evolution (e.g., morphing from basic to advanced).\n3. **Target Audience Analysis:** Intended recipients (e.g., devs, C-suite); support with tone/language/depth; infer client handpicking opportunities for us.\n4. **Positioning & Strategic Narrative:** Keywords/phrases defining their brand; pain points solved; how they differentiate. Highlight gaps where our flywheel wins.\n5. **Pricing Intelligence:** Changes/promotions/costs/value props; compare to our tiers (e.g., their SaaS vs. our self-hosting savings); suggest pricing adjustments.\n6. **Strategic Trajectory & Insights:** Business direction (e.g., expansion); infer demand signals/patterns; confidence score with justification.\n7. **Actionable Intelligence:** Opportunities/threats by tier (spawn \"homework\" like follow-ups):\n   - **Tier 1 (AI Strategy Intensive):** Refine pitch or identify ideal clients (e.g., based on audience pain).\n   - **Tier 2 (Automation Infrastructure):** Demand for specific n8n workflows (e.g., intel monitoring).\n   - **Tier 3 (AI Consciousness Networks):** Long-term shifts for Personas to track (e.g., evolving AI trends).\n   - **Tier 4 (ScraperSky):** Web intel opportunities (e.g., URLs/domains to scrape for deeper analysis).\n8. **Positioning Recommendations:** 1-2 bullets on how this informs our strategy (e.g., target clients, adjust messaging/pricing based on morphing ideas).\n\n**Quality Gate Self-Check:** Confirm output is concise, YAML valid, insights protective (bias to advantages), and Obsidian-compatible. End with a one-sentence takeaway on idea evolution/market demand."
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        176,
+        -224
+      ],
+      "id": "24ca2c34-a0b7-4f55-b428-0a4d216d22cb",
+      "name": "AI Competitor Intelligence Analyzer",
+      "credentials": {
+        "openAiApi": {
+          "id": "YmBILydZ1nPmlYvr",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data Merger & AI Integration\n// Get the current OpenAI response\nconst aiResponse = $json;\n\n// Get the original parsed data from the Email Parser node\nconst original = $('Email Parser & Domain Extractor').first()?.json;\n\n// --- OPTIONAL ENHANCEMENT ---\n// Add a check to ensure the data was retrieved successfully\nif (!original) {\n  throw new Error(\"Could not retrieve data from 'Email Parser & Domain Extractor'. Check that the node name is correct.\");\n}\n// --- END ENHANCEMENT ---\n\n\n// --- START: REVISED AI SUMMARY EXTRACTION ---\n// Extract AI summary, safely handling both string and object responses\nlet aiSummary = '';\nconst messageContent = aiResponse.choices?.[0]?.message?.content;\n\n// Check if the AI response content is a plain string\nif (typeof messageContent === 'string') {\n  aiSummary = messageContent;\n} \n// Check if it's an object (like an error message from the AI)\nelse if (typeof messageContent === 'object' && messageContent !== null) {\n  // Convert the error object to a readable string for logging\n  aiSummary = `AI returned an error object: ${JSON.stringify(messageContent)}`;\n} \n// Standard fallbacks for other possible response structures\nelse if (aiResponse.content) {\n  aiSummary = aiResponse.content;\n} else if (aiResponse.text) {\n  aiSummary = aiResponse.text;\n} else if (typeof aiResponse === 'string') {\n  aiSummary = aiResponse;\n} \n// If all else fails\nelse {\n  aiSummary = 'AI summary extraction failed';\n}\n// --- END: REVISED AI SUMMARY EXTRACTION ---\n\n\n// Clean and validate the AI summary\n// This line will no longer fail because aiSummary is now always a string\naiSummary = aiSummary ? aiSummary.trim() : 'No AI analysis available';\n\n\n// Return merged data: original parsed fields + AI analysis\nreturn [{\n  json: {\n    ...original,                    // Now pulls sender, email_text, etc. from Node 2\n    ai_summary: aiSummary,          // The AI analysis\n    processing_timestamp: new Date().toISOString(),  // When this merge happened\n    ai_model: aiResponse.model || 'unknown'          // Which AI model was used\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -224
+      ],
+      "id": "e58ec5ec-7abb-4777-a273-6e4eae0bde81",
+      "name": "Data Merger & AI Integration"
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "=---\ntags: [competitor-intel, email-analysis, {{ $json.senderDomain || 'unknown' }}]\ndate: {{ $now.format('YYYY-MM-DD') }}\ntime: {{ $now.format('HH:mm:ss') }}\nsource: email\nsender: {{ $json.sender || 'Unknown sender' }}\nsubject: \"{{ $json.subject || 'No subject' }}\"\ndomain: {{ $json.senderDomain || 'unknown' }}\nanalysis-date: {{ $now.format('YYYY-MM-DD HH:mm:ss') }}\nextraction-method: {{ $json.extraction_method || 'unknown' }}\ntext-length: {{ $json.text_length || 0 }}\n---\n\n# Competitor Intelligence: {{ $json.subject || 'Unknown Subject' }}\n\n## 📧 Email Details\n- **From:** {{ $json.sender || 'Unknown sender' }}\n- **Domain:** {{ $json.senderDomain || 'unknown' }}\n- **Date:** {{ $json.date || 'Unknown date' }}\n- **Subject:** {{ $json.subject || 'No subject' }}\n- **Content Length:** {{ $json.text_length || 0 }} characters\n- **Extraction Method:** {{ $json.extraction_method || 'unknown' }}\n\n## 🤖 AI Competitive Analysis\n{{ $json.ai_summary || 'AI analysis not available' }}\n\n## 📄 Original Email Content\n{{ $json.email_text || 'Email content not available' }}\n\n---\n*Generated by n8n Competitor Intelligence Workflow*\n*Processing Time: {{ $json.processing_timestamp || $now.toISOString() }}*\n*AI Model: {{ $json.ai_model || 'unknown' }}*",
+        "name": "={{ $now.setZone('America/Los_Angeles').toFormat('yyyy-MM-dd_HH-mm') }}_{{ ($json.subject || 'No Subject').replace(/[\\\\/:\"*?<>|]/g, '') }}.md",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1HP7Pii6-MrUr5R4Y3GGkIk84ReV6QQIc",
+          "mode": "list",
+          "cachedResultName": "Crows Nest",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1HP7Pii6-MrUr5R4Y3GGkIk84ReV6QQIc"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        800,
+        -224
+      ],
+      "id": "687ef198-f93d-425a-a691-7293b74229ce",
+      "name": "Competitor Intel File Creator",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "H8Yrve6IfFDWiRvw",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Get many messages').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1056,
+        -224
+      ],
+      "id": "b860341c-7a99-4ebb-b26b-bb39b350b0a2",
+      "name": "Mark a message as read",
+      "webhookId": "dee47bb4-6898-4453-8433-331d5ed8f136",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mcOhyAgPtYo02OkR",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Email Parser & Domain Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Parser & Domain Extractor": {
+      "main": [
+        [
+          {
+            "node": "AI Competitor Intelligence Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Competitor Intelligence Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Data Merger & AI Integration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Merger & AI Integration": {
+      "main": [
+        [
+          {
+            "node": "Competitor Intel File Creator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Competitor Intel File Creator": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f47dbaa2-55dd-492b-8415-57fbb3173b0d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cf869fca64012e6561c3a8aa4a77e587700789bed025ef5a7dec1df660fab605"
+  },
+  "id": "I1uzOb87Lz63Ctdm",
+  "tags": []
+}

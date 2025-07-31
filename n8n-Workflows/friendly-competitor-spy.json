@@ -1,0 +1,188 @@
+{
+  "name": "friendly-competitor-spy",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "o4-mini-2025-04-16",
+          "mode": "list",
+          "cachedResultName": "O4-MINI-2025-04-16"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Summarize the following email: {{$json[\"email_text\"]}}\n\nSubject: {{$json[\"subject\"]}}\nFrom: {{$json[\"sender\"]}}\n\nEmail content:\n{{$json[\"email_text\"]}}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        160,
+        -32
+      ],
+      "id": "ab6c8bda-0c8f-4eaa-a28a-bc55da3a171d",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "YmBILydZ1nPmlYvr",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fixed Gmail text extraction for the actual data structure\nreturn $input.all().map(item => {\n  console.log('Processing item:', JSON.stringify(item.json, null, 2));\n  \n  let text = '';\n  let extractionMethod = 'none';\n  \n  // Method 1: Check for direct 'text' field (plain text)\n  if (item.json.text && item.json.text.trim()) {\n    text = item.json.text.trim();\n    extractionMethod = 'direct_text_field';\n  }\n  \n  // Method 2: Check for 'textAsHtml' field and strip HTML\n  else if (item.json.textAsHtml && item.json.textAsHtml.trim()) {\n    // Strip HTML tags from textAsHtml\n    text = item.json.textAsHtml\n      .replace(/<[^>]+>/g, ' ')     // Remove HTML tags\n      .replace(/&nbsp;/g, ' ')     // Replace &nbsp;\n      .replace(/&amp;/g, '&')      // Replace &amp;\n      .replace(/&lt;/g, '<')       // Replace &lt;\n      .replace(/&gt;/g, '>')       // Replace &gt;\n      .replace(/&quot;/g, '\"')     // Replace &quot;\n      .replace(/\\s+/g, ' ')        // Collapse multiple spaces\n      .trim();\n    extractionMethod = 'textAsHtml_stripped';\n  }\n  \n  // Method 3: Fallback to snippet if available\n  else if (item.json.snippet && item.json.snippet.trim()) {\n    text = item.json.snippet.trim();\n    extractionMethod = 'snippet_fallback';\n  }\n  \n  // Method 4: Last resort - use subject line\n  else if (item.json.subject) {\n    text = `Subject: ${item.json.subject}`;\n    extractionMethod = 'subject_only';\n  }\n  \n  // Final validation\n  if (!text || text.trim() === '') {\n    text = '(No readable email content found)';\n    extractionMethod = 'failed';\n  }\n  \n  console.log(`Extraction method: ${extractionMethod}, Text length: ${text.length}`);\n  \n  // Return enriched data\n  return {\n    json: {\n      ...item.json,\n      email_text: text,\n      extraction_method: extractionMethod,\n      text_length: text.length,\n      // Include subject and sender for context\n      subject: item.json.subject || 'No subject',\n      sender: item.json.from?.[0]?.address || 'Unknown sender'\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -32
+      ],
+      "id": "0ca83dc1-e94b-4dfe-9b79-6c9c2860bde2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const fromHeader = item.json.from || '';\n  \n  // Extract email from \"From: Name <email@domain.com>\" format\n  const match = fromHeader.match(/<(.+?)>/);\n  const email = match ? match[1] : '';\n  const domain = email ? email.split('@')[1] : 'unknown-sender';\n  \n  return {\n    json: {\n      ...item.json,\n      senderDomain: domain\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -32
+      ],
+      "id": "ed85859e-ad55-4977-aaed-a3d88fbf1395",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "=---\ntags: [competitor-intel, email-analysis, {{$json.senderDomain}}]\ndate: {{$now.format('YYYY-MM-DD')}}\ntime: {{$now.format('HH:mm:ss')}}\nsource: email\nsender: {{$('Get many messages').first().json.from}}\nsubject: \"{{$('Get many messages').first().json.subject}}\"\nanalysis-date: {{$now.format('YYYY-MM-DD HH:mm:ss')}}\n---\n\n# Competitor Intelligence: {{$('Get many messages').first().json.subject}}\n\n## 📧 Email Details\n- **From:** {{$('Get many messages').first().json.from}}\n- **Date:** {{$('Get many messages').first().json.date}}\n- **Subject:** {{$('Get many messages').first().json.subject}}\n\n## 🤖 AI Analysis\n\n{{$('Message a model').first().json.choices[0].message.content}}\n\n## 📄 Original Email Content\n\n```\n{{$('Code').first().json.email_text}}\n```\n\n## 🔗 Related\n- [[Competitor Analysis]]\n- [[Email Intelligence]]\n- #competitor-intel",
+        "name": "={{$now.format('YYYY-MM-DD')}}_{{$json.senderDomain}}_Summary.md",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "15Ww6uBvidXWebqUNAsDji3PFqcTt0oJr",
+          "mode": "list",
+          "cachedResultName": "01_friendly competitors",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/15Ww6uBvidXWebqUNAsDji3PFqcTt0oJr"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        720,
+        -32
+      ],
+      "id": "e4769122-6661-4091-adb2-7c2ef374dd03",
+      "name": "Create file from text",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "H8Yrve6IfFDWiRvw",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_1688379935863361814"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        -32
+      ],
+      "id": "e0ad794c-e28b-4cf6-88aa-4dcd9ea25c44",
+      "name": "Get many messages",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mcOhyAgPtYo02OkR",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Create file from text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2f61677d-38b3-4d40-aadd-12dae2d5220e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cf869fca64012e6561c3a8aa4a77e587700789bed025ef5a7dec1df660fab605"
+  },
+  "id": "aJncDEr9j9muTjM2",
+  "tags": []
+}

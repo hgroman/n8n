@@ -1,0 +1,193 @@
+{
+  "name": "friendly-competitor-spy",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_1688379935863361814"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -224
+      ],
+      "id": "e0ad794c-e28b-4cf6-88aa-4dcd9ea25c44",
+      "name": "Get many messages",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mcOhyAgPtYo02OkR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email Parser & Domain Extractor - FIXED\nreturn $input.all().map(item => {\n  \n  /* ---------- 1. Extract readable email text ---------- */\n  let text = '';\n  let extractionMethod = 'none';\n  \n  // A. Plain-text field (cleanest option)\n  if (item.json.text && item.json.text.trim()) {\n    text = item.json.text.trim();\n    extractionMethod = 'direct_text_field';\n  }\n  \n  // B. HTML field → strip tags and decode entities\n  else if (item.json.textAsHtml && item.json.textAsHtml.trim()) {\n    text = item.json.textAsHtml\n      .replace(/<[^>]+>/g, ' ')           // Remove HTML tags\n      .replace(/&nbsp;/g, ' ')           // Non-breaking spaces\n      .replace(/&amp;/g, '&')           // Ampersands\n      .replace(/&lt;/g, '<')            // Less than\n      .replace(/&gt;/g, '>')            // Greater than\n      .replace(/&quot;/g, '\"')          // Quotes\n      .replace(/&#39;/g, \"'\")           // Apostrophes\n      .replace(/\\s+/g, ' ')             // Multiple spaces → single space\n      .trim();\n    extractionMethod = 'textAsHtml_stripped';\n  }\n  \n  // C. Fallback to Gmail snippet\n  else if (item.json.snippet && item.json.snippet.trim()) {\n    text = item.json.snippet.trim();\n    extractionMethod = 'snippet_fallback';\n  }\n  \n  // D. Last resort: subject only\n  else if (item.json.subject) {\n    text = `Subject: ${item.json.subject}`;\n    extractionMethod = 'subject_only';\n  }\n  \n  // E. Complete failure case\n  if (!text) {\n    text = '(No readable email content found)';\n    extractionMethod = 'failed';\n  }\n  \n  /* ---------- 2. Extract sender info and domain - FIXED ---------- */\n  let rawFrom = '';\n  \n  // Try multiple ways to get the sender email\n  if (item.json.from && Array.isArray(item.json.from) && item.json.from[0] && item.json.from[0].address) {\n    rawFrom = item.json.from[0].address;\n  } else if (item.json.from && typeof item.json.from === 'string') {\n    rawFrom = item.json.from;\n  } else if (item.json.sender && typeof item.json.sender === 'string') {\n    rawFrom = item.json.sender;\n  } else {\n    rawFrom = '';\n  }\n  \n  // Extract domain safely\n  const senderDomain = (rawFrom && typeof rawFrom === 'string' && rawFrom.includes('@')) \n    ? rawFrom.split('@')[1] \n    : 'unknown';\n  \n  /* ---------- 3. Return enriched payload ---------- */\n  return {\n    json: {\n      ...item.json,                    // Preserve all original Gmail fields\n      email_text: text,                // Clean, readable email content\n      extraction_method: extractionMethod,  // How we got the text (for debugging)\n      text_length: text.length,        // Content length (for monitoring)\n      sender: rawFrom || 'Unknown sender',   // Full email address\n      senderDomain                     // Just the domain part\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -224
+      ],
+      "id": "0ca83dc1-e94b-4dfe-9b79-6c9c2860bde2",
+      "name": "Email Parser & Domain Extractor"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "o4-mini-2025-04-16",
+          "mode": "list",
+          "cachedResultName": "O4-MINI-2025-04-16"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Analyze this competitor email for key intelligence insights:\n\n**Email Details:**\n- From: {{$json[\"sender\"]}}\n- Subject: {{$json[\"subject\"]}}\n- Domain: {{$json[\"senderDomain\"]}}\n\n**Analysis Focus:**\nPlease extract and summarize:\n1. **Key Announcements**: New products, services, or features\n2. **Pricing Intelligence**: Any pricing changes, promotions, or cost information\n3. **Market Positioning**: How they're positioning themselves vs competitors\n4. **Strategic Insights**: What this reveals about their business direction\n5. **Actionable Intelligence**: Opportunities or threats for our business\n\n**Email Content:**\n{{$json[\"email_text\"]}}\n\n**Output Format:**\nProvide a concise but comprehensive analysis in markdown format with clear sections for each focus area above."
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        176,
+        -224
+      ],
+      "id": "ab6c8bda-0c8f-4eaa-a28a-bc55da3a171d",
+      "name": "AI Competitor Intelligence Analyzer",
+      "credentials": {
+        "openAiApi": {
+          "id": "YmBILydZ1nPmlYvr",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data Merger & AI Integration\n// Get the current OpenAI response\nconst aiResponse = $json;\n\n// Get the original Gmail data from the input (before OpenAI)\nconst original = $input.first().json;\n\n// Extract AI summary with multiple fallback options\nlet aiSummary = '';\nif (aiResponse.choices && aiResponse.choices[0] && aiResponse.choices[0].message) {\n  aiSummary = aiResponse.choices[0].message.content;\n} else if (aiResponse.content) {\n  aiSummary = aiResponse.content;\n} else if (aiResponse.text) {\n  aiSummary = aiResponse.text;\n} else if (typeof aiResponse === 'string') {\n  aiSummary = aiResponse;\n} else {\n  aiSummary = 'AI summary extraction failed';\n}\n\n// Clean and validate the AI summary\naiSummary = aiSummary ? aiSummary.trim() : 'No AI analysis available';\n\n// Return merged data: original Gmail fields + AI analysis\nreturn [{\n  json: {\n    ...original,                    // All the Gmail data from Email Parser\n    ai_summary: aiSummary,          // The AI analysis\n    processing_timestamp: new Date().toISOString(),  // When this merge happened\n    ai_model: aiResponse.model || 'unknown'          // Which AI model was used\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -224
+      ],
+      "id": "77adcdf7-94a3-4fab-90f2-c729f9465d4f",
+      "name": "Data Merger & AI Integration"
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "=---\ntags: [competitor-intel, email-analysis, {{ $json.senderDomain || 'unknown' }}]\ndate: {{ $now.format('YYYY-MM-DD') }}\ntime: {{ $now.format('HH:mm:ss') }}\nsource: email\nsender: {{ $json.sender || 'Unknown sender' }}\nsubject: \"{{ $json.subject || 'No subject' }}\"\ndomain: {{ $json.senderDomain || 'unknown' }}\nanalysis-date: {{ $now.format('YYYY-MM-DD HH:mm:ss') }}\nextraction-method: {{ $json.extraction_method || 'unknown' }}\ntext-length: {{ $json.text_length || 0 }}\n---\n\n# Competitor Intelligence: {{ $json.subject || 'Unknown Subject' }}\n\n## 📧 Email Details\n- **From:** {{ $json.sender || 'Unknown sender' }}\n- **Domain:** {{ $json.senderDomain || 'unknown' }}\n- **Date:** {{ $json.date || 'Unknown date' }}\n- **Subject:** {{ $json.subject || 'No subject' }}\n- **Content Length:** {{ $json.text_length || 0 }} characters\n- **Extraction Method:** {{ $json.extraction_method || 'unknown' }}\n\n## 🤖 AI Competitive Analysis\n{{ $json.ai_summary || 'AI analysis not available' }}\n\n## 📄 Original Email Content\n{{ $json.email_text || 'Email content not available' }}\n\n---\n*Generated by n8n Competitor Intelligence Workflow*\n*Processing Time: {{ $json.processing_timestamp || $now.toISOString() }}*\n*AI Model: {{ $json.ai_model || 'unknown' }}*",
+        "name": "={{ $now.format('YYYY-MM-DD_HH-mm') }}_{{ $json.senderDomain || 'unknown' }}_competitor-intel.md",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "15Ww6uBvidXWebqUNAsDji3PFqcTt0oJr",
+          "mode": "list",
+          "cachedResultName": "01_friendly competitors",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/15Ww6uBvidXWebqUNAsDji3PFqcTt0oJr"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        800,
+        -224
+      ],
+      "id": "e4769122-6661-4091-adb2-7c2ef374dd03",
+      "name": "Competitor Intel File Creator",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "H8Yrve6IfFDWiRvw",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Email Parser & Domain Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Parser & Domain Extractor": {
+      "main": [
+        [
+          {
+            "node": "AI Competitor Intelligence Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Competitor Intelligence Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Data Merger & AI Integration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Merger & AI Integration": {
+      "main": [
+        [
+          {
+            "node": "Competitor Intel File Creator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Competitor Intel File Creator": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0cc6045a-fa88-486c-aa47-1dd0a0e77148",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cf869fca64012e6561c3a8aa4a77e587700789bed025ef5a7dec1df660fab605"
+  },
+  "id": "aJncDEr9j9muTjM2",
+  "tags": []
+}
