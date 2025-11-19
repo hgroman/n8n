@@ -13,7 +13,7 @@ services:
       - N8N_EDITOR_BASE_URL=https://n8n.improvemyrankings.com
       - WEBHOOK_URL=https://n8n.improvemyrankings.com
       - N8N_WEBHOOK_TUNNEL_URL=https://n8n.improvemyrankings.com
-      - N8N_SECURE_COOKIE=false
+      - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE:-true}
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-changeme}
